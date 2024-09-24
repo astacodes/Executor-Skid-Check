@@ -75,6 +75,24 @@ end)
 
 test(function()
     local p, e = pcall(function()
+        game:GetService("LinkingService"):OpenUrl()
+    end)
+
+    if p then
+        fail("LinkingService RCE not patched (Common in Xeno 1.0.4)")
+        return
+    end
+
+    if string.find(e, "Attempt to call a blocked function: OpenUrl") then
+        fail("Blocked function message is 1:1 to Xeno")
+        return
+    end
+
+    pass("Blocked function message is not 1:1 to Xeno")
+end)
+
+test(function()
+    local p, e = pcall(function()
         local execname, execvers = identifyexecutor()
         local exectable = nil
 
@@ -164,7 +182,7 @@ print("Skid Summary")
 print("✅ Tested with a " .. rate .. "% success rate (" .. outOf .. ")")
 print("⛔ " .. fails .. " tests failed")
 
-if rate < 26 then
+if rate < 51 then
     local executorname, version = identifyexecutor()
     warn("⚠️ Your executor (AKA "..executorname..") is probably skidded, please stop using it")
 end
