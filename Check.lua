@@ -9,9 +9,13 @@ function warn_(text)
     warn("⚠️ "..text)
 end
 
-function fail(text)
+function fail(text, lol)
     fails += 1
-    print("⛔ "..text)
+    if not lol then
+        print("⛔ "..text)
+    else
+        print("⛔ "..text.." ("..lol..")")
+    end
 end
 
 function test(func)
@@ -22,6 +26,70 @@ print("\n")
 print("Skid Environment Check")
 print("✅ - Pass, ⛔ - Fail")
 print("\n")
+
+warn_("Loading tests... please wait")
+test(function()
+    task.spawn(function()
+        game.CoreGui.ChildAdded:Connect(function(v)
+            if v:IsA("ScreenGui") then
+                if v.Name == "Window" or v.Name == "MainMenu" or v.Name == "ScreenGui" or v.Name == "Intro" then
+                    v.Enabled = false
+                end
+            end
+        end)
+
+        while wait() do
+            for _, v in pairs(game.CoreGui:GetChildren()) do
+                if v:IsA("ScreenGui") then
+                    if v.Name == "Window" or v.Name == "MainMenu" or v.Name == "ScreenGui" or v.Name == "Intro" then
+                        v.Enabled = false
+                    end
+                end
+            end
+        end
+    end)
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
+
+    local Timeout = 5
+    local ElapsedTime = 0
+    local StartTime = os.time()
+
+    repeat
+        wait(0.1)
+        ElapsedTime = os.time() - StartTime
+    until game.CoreGui:FindFirstChild("Window") or ElapsedTime >= Timeout
+
+    if not game.CoreGui:FindFirstChild("Window") then
+        fail("Dex was not located or took too long to load")
+        return
+    end
+
+    local FoundElement = nil
+    for i, v in pairs(game:GetDescendants()) do
+        pcall(function()
+            if v.Text == "StarterGui" then
+                FoundElement = v
+            end
+        end)
+    end
+
+    if not FoundElement then
+        fail("Dex was not able to find children of Game (Xeno Bug)", "nil instances moment 🤑")
+    else
+        pass("Dex loaded all objects successfully!")
+    end
+
+    warn_("Unloading Dex..")
+    repeat wait() until not game.CoreGui:FindFirstChild("Intro")
+
+    for _, v in pairs(game.CoreGui:GetChildren()) do
+        if v:IsA("ScreenGui") then
+            if v.Name == "Window" or v.Name == "MainMenu" or v.Name == "ScreenGui" or v.Name == "Intro" then
+                v:Destroy()
+            end
+        end
+    end
+end)
 
 test(function()
     local p, e = pcall(function()
@@ -54,41 +122,37 @@ test(function()
 end)
 
 test(function()
-    local p, e = pcall(function()
-        local value = about
-    end)
-
-    local p2, e2 = pcall(function()
-        local value = about
-        local value2 = about._name
-        local value3 = about._version
-        local value4 = about._publisher
-    end)
-
-    if p2 then
-        fail("About table exists and is 1:1 to Xeno")
+    if about and about.__name and about.__version and about.__publisher then
+        fail("About table exists and is 1:1 to Xeno", "did "..about._publisher.." really make this 🤔")
+        return
+    elseif about and about.__publisher then
+        fail("About table exists and is 1:1 to Xeno", "did "..about._publisher.." really make this 🤔")
+        return
+    elseif about then
+        local name, idc = identifyexecutor()
+        fail("About table exists and is 1:1 to Xeno", "did "..name.." devs really make this 🤔")
+        return
+    else
+        pass("About table is original")
         return
     end
-
-    pass("About table is not 1:1 to Xeno")
 end)
 
 test(function()
     local p, e = pcall(function()
-        game:GetService("LinkingService"):OpenUrl()
+        local test = game:GetService("LinkingService"):OpenUrl()
+        if test == true then
+            fail("LinkingService RCE not patched (Common in Xeno 1.0.4)", "vulnerable ✅✅✅")
+            return
+        end
     end)
 
-    if p then
-        fail("LinkingService RCE not patched (Common in Xeno 1.0.4)")
-        return
-    end
-
-    if string.find(e, "Attempt to call a blocked function: OpenUrl") then
+    if e and string.find(e, "Attempt to call a blocked function: OpenUrl") then
         fail("Blocked function message is 1:1 to Xeno")
         return
     end
 
-    pass("Blocked function message is not 1:1 to Xeno")
+    pass("Blocked function patch is original")
 end)
 
 test(function()
@@ -96,70 +160,82 @@ test(function()
         local execname, execvers = identifyexecutor()
         local exectable = nil
 
-        local variations = {
-            execname,
-            string.lower(execname),
-            string.upper(execname),
-            string.gsub(string.lower(execname), "^%l", string.upper),
-            "Executor",
-            "Exploit"
-        }
-
-        for _, name in ipairs(variations) do
-            if getgenv()[name] or getfenv()[name] then
-                exectable = getgenv()[name] and getgenv()[name] or getfenv()[name]
-                warn_(execname.." table exists in the global environment, checking for functions")
-
-                if exectable["GUID"] then
-                    fail("Global GUID variable exists in the global "..name.." table")
-                else
-                    pass("Default Xeno variable GUID does not exist in the environment for "..name)
+        function GrabExecTable()
+            local env = getgenv()
+        
+            for key, value in pairs(env) do
+                if type(value) == "table" and (
+                    value.PID or
+                    value.GUID or
+                    type(value.get_real_address) == "function" or
+                    type(value.spoof_instance) == "function" or
+                    type(value.GetGlobal) == "function" or
+                    type(value.SetGlobal) == "function" or
+                    type(value.HttpSpy) == "function" or
+                    type(value.Compile) == "function"
+                ) then
+                    return key, value
                 end
-
-                if exectable["PID"] then
-                    fail("Global PID variable exists in the global "..name.." table")
-                else
-                    pass("Default Xeno variable PID does not exist in the environment for "..name)
-                end
-
-                if exectable["get_real_address"] then
-                    fail("Global get_real_address function exists in the global "..name.." table")
-                else
-                    pass("Default Xeno function get_real_address does not exist in the environment for "..name)
-                end
-
-                if exectable["spoof_instance"] then
-                    fail("Global spoof_instance function exists in the global "..name.." table")
-                else
-                    pass("Default Xeno function spoof_instance does not exist in the environment for "..name)
-                end
-
-                if exectable["GetGlobal"] then
-                    fail("Global GetGlobal function exists in the global "..name.." table")
-                else
-                    pass("Default Xeno function GetGlobal does not exist in the environment for "..name)
-                end
-
-                if exectable["SetGlobal"] then
-                    fail("Global SetGlobal function exists in the global "..name.." table")
-                else
-                    pass("Default Xeno function SetGlobal does not exist in the environment for "..name)
-                end
-
-                if exectable["Compile"] then
-                    fail("Global Compile function exists in the global "..name.." table")
-                else
-                    pass("Default Xeno function Compile does not exist in the environment for "..name)
-                end
-
-                if exectable["HttpSpy"] then
-                    fail("Global HttpSpy function exists in the global "..name.." table")
-                else
-                    pass("Default Xeno function HttpSpy does not exist in the environment for "..name)
-                end
-
-                return
             end
+        
+            return nil, nil
+        end
+        
+        local tname, ttable = GrabExecTable()
+
+        if ttable then
+            local name = execname
+            local exectable = ttable
+
+            if exectable["GUID"] then
+                fail("GUID variable exists in the global "..tname.." table")
+            else
+                pass("Default Xeno variable GUID does not exist in the environment for "..name)
+            end
+
+            if exectable["PID"] then
+                fail("PID variable exists in the global "..tname.." table")
+            else
+                pass("Default Xeno variable PID does not exist in the environment for "..name)
+            end
+
+            if exectable["get_real_address"] then
+                fail("get_real_address function exists in the global "..tname.." table")
+            else
+                pass("Default Xeno function get_real_address does not exist in the environment for "..name)
+            end
+
+            if exectable["spoof_instance"] then
+                fail("spoof_instance function exists in the global "..tname.." table")
+            else
+                pass("Default Xeno function spoof_instance does not exist in the environment for "..name)
+            end
+
+            if exectable["GetGlobal"] then
+                fail("GetGlobal function exists in the global "..tname.." table")
+            else
+                pass("Default Xeno function GetGlobal does not exist in the environment for "..name, "xeno what is the point of this")
+            end
+
+            if exectable["SetGlobal"] then
+                fail("SetGlobal function exists in the global "..tname.." table")
+            else
+                pass("Default Xeno function SetGlobal does not exist in the environment for "..name, "xeno what is the point of this v2")
+            end
+
+            if exectable["Compile"] then
+                fail("Compile function exists in the global "..tname.." table", "global compile function 😎💯")
+            else
+                pass("Default Xeno function Compile does not exist in the environment for "..name)
+            end
+
+            if exectable["HttpSpy"] then
+                fail("HttpSpy function exists in the global "..tname.." table", "luarmorK 🤑✅")
+            else
+                pass("Default Xeno function HttpSpy does not exist in the environment for "..name)
+            end
+
+            return
         end
 
         pass("Default Xeno variable GUID does not exist in the environment")
