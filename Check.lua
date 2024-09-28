@@ -107,30 +107,13 @@ test(function()
 end)
 
 test(function()
-    local p, e = pcall(function()
-        local scriptpath = getfenv().script:GetFullName()
-        if scriptname ~= nil and string.find(scriptpath, "RobloxReplicatedStorage") then
-            error("Skidded")
-        end
-    end)
-
-    if p then
-        pass("Fake Environment script is not located in RobloxReplicatedStorage")
-    else
-        fail("Fake Environment script is located in RobloxReplicatedStorage")
-    end
-end)
-
-test(function()
-    local p, e = pcall(function()
-        local scriptpath = getfenv().script:GetFullName()
-    end)
-
-    if p then
-        local scriptpath = getfenv().script:GetFullName()
-        if scriptpath ~= nil and string.find(scriptpath, "RobloxReplicatedStorage") then
-            fail("Fake Environment script is located in RobloxReplicatedStorage")
-        end
+    local scriptpath = getfenv().script:GetFullName()
+    if scriptpath ~= nil then
+		if string.find(scriptpath, "RobloxReplicatedStorage") then
+			fail("Fake Environment script is located in RobloxReplicatedStorage")
+        else
+            pass("Fake Environment script is not located in RobloxReplicatedStorage")
+		end
     else
         pass("Fake Environment script is not located in RobloxReplicatedStorage")
     end
@@ -180,11 +163,7 @@ test(function()
             
             for key, value in pairs(env) do
                 if type(value) == "table" then
-                    local p, e = pcall(function()
-                        local a = value.PID
-                    end)
-
-                    if p then
+                    if value.PID then
                         return key, value
                     end
                 end
@@ -200,7 +179,7 @@ test(function()
             pass("Default Xeno function HttpSpy does not exist in the environment")
 
             return nil, nil
-        end        
+        end
         
         local tname, ttable = GrabExecTable()
 
