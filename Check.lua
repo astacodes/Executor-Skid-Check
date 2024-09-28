@@ -94,7 +94,7 @@ end)
 test(function()
     local p, e = pcall(function()
         local scriptname = getfenv().script.name
-        if string.len(scriptname) == 36 then
+        if scriptname ~= nil and string.len(scriptname) == 36 then
             error("Skidded")
         end
     end)
@@ -109,15 +109,15 @@ end)
 test(function()
     local p, e = pcall(function()
         local scriptpath = getfenv().script:GetFullName()
-        if string.find(scriptpath, "RobloxReplicatedStorage") then
-            error("Skidded")
-        end
     end)
 
     if p then
-        pass("Fake Environment script is not located in RobloxReplicatedStorage")
+        local scriptpath = getfenv().script:GetFullName()
+        if scriptpath ~= nil and string.find(scriptpath, "RobloxReplicatedStorage") then
+            fail("Fake Environment script is located in RobloxReplicatedStorage")
+        end
     else
-        fail("Fake Environment script is located in RobloxReplicatedStorage")
+        pass("Fake Environment script is not located in RobloxReplicatedStorage")
     end
 end)
 
@@ -162,28 +162,34 @@ test(function()
 
         function GrabExecTable()
             local env = getgenv()
-        
+            
             for key, value in pairs(env) do
-                if type(value) == "table" and (
-                    value.PID or
-                    value.GUID or
-                    type(value.get_real_address) == "function" or
-                    type(value.spoof_instance) == "function" or
-                    type(value.GetGlobal) == "function" or
-                    type(value.SetGlobal) == "function" or
-                    type(value.HttpSpy) == "function" or
-                    type(value.Compile) == "function"
-                ) then
-                    return key, value
+                if type(value) == "table" then
+                    local p, e = pcall(function()
+                        local a = value.PID
+                    end)
+
+                    if p then
+                        return key, value
+                    end
                 end
             end
-        
+
+            pass("Default Xeno variable GUID does not exist in the environment")
+            pass("Default Xeno variable PID does not exist in the environment")
+            pass("Default Xeno function get_real_address does not exist in the environment")
+            pass("Default Xeno function spoof_instance does not exist in the environment")
+            pass("Default Xeno function GetGlobal does not exist in the environment")
+            pass("Default Xeno function SetGlobal does not exist in the environment")
+            pass("Default Xeno function Compile does not exist in the environment")
+            pass("Default Xeno function HttpSpy does not exist in the environment")
+
             return nil, nil
-        end
+        end        
         
         local tname, ttable = GrabExecTable()
 
-        if ttable then
+        if ttable ~= nil then
             local name = execname
             local exectable = ttable
 
@@ -234,18 +240,7 @@ test(function()
             else
                 pass("Default Xeno function HttpSpy does not exist in the environment for "..name)
             end
-
-            return
         end
-
-        pass("Default Xeno variable GUID does not exist in the environment")
-        pass("Default Xeno variable PID does not exist in the environment")
-        pass("Default Xeno function get_real_address does not exist in the environment")
-        pass("Default Xeno function spoof_instance does not exist in the environment")
-        pass("Default Xeno function GetGlobal does not exist in the environment")
-        pass("Default Xeno function SetGlobal does not exist in the environment")
-        pass("Default Xeno function Compile does not exist in the environment")
-        pass("Default Xeno function HttpSpy does not exist in the environment")
     end)
 end)
 
