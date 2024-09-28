@@ -109,6 +109,21 @@ end)
 test(function()
     local p, e = pcall(function()
         local scriptpath = getfenv().script:GetFullName()
+        if scriptname ~= nil and string.find(scriptpath, "RobloxReplicatedStorage") then
+            error("Skidded")
+        end
+    end)
+
+    if p then
+        pass("Fake Environment script is not located in RobloxReplicatedStorage")
+    else
+        fail("Fake Environment script is located in RobloxReplicatedStorage")
+    end
+end)
+
+test(function()
+    local p, e = pcall(function()
+        local scriptpath = getfenv().script:GetFullName()
     end)
 
     if p then
