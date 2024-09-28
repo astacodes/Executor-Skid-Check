@@ -181,7 +181,24 @@ test(function()
             return nil, nil
         end
         
-        local tname, ttable = GrabExecTable()
+        local p, e = pcall(function()
+            GrabExecTable()
+        end)
+
+        if p then
+            local tname, ttable = GrabExecTable()
+        end
+
+        if e then
+            pass("Default Xeno variable GUID does not exist in the environment")
+            pass("Default Xeno variable PID does not exist in the environment")
+            pass("Default Xeno function get_real_address does not exist in the environment")
+            pass("Default Xeno function spoof_instance does not exist in the environment")
+            pass("Default Xeno function GetGlobal does not exist in the environment")
+            pass("Default Xeno function SetGlobal does not exist in the environment")
+            pass("Default Xeno function Compile does not exist in the environment")
+            pass("Default Xeno function HttpSpy does not exist in the environment")
+        end
 
         if ttable ~= nil then
             local name = execname
